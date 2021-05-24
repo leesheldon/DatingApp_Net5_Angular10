@@ -6,12 +6,12 @@ using API.Data;
 using API.DTOs;
 using API.Entities;
 using API.Extensions;
+using API.Helpers;
 using API.Interfaces;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace API.Controllers
 {
@@ -30,15 +30,19 @@ namespace API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<MemberDto>>> GetUsers()
+        public async Task<ActionResult<IEnumerable<MemberDto>>> GetUsers([FromQuery]PagingParams pagingParams)
         {
-            // var users = await _userRepository.GetUsersAsync();
+            var loggedInUser = await _userRepository.GetUserByUserNameAsync(User.GetUserName());
 
-            // var usersToReturn = _mapper.Map<IEnumerable<MemberDto>>(users);
+            pagingParams.CurrentUsername = loggedInUser.UserName;
+            if (string.IsNullOrEmpty(pagingParams.GenderToFilter))
+                pagingParams.GenderToFilter = loggedInUser.Gender == "male" ? "female" : "male";
 
-            // return Ok(usersToReturn);
+            var users = await _userRepository.GetMembersAsync(pagingParams);
 
-            return Ok(await _userRepository.GetMembersAsync());
+            Response.AddPaginationHeader(users.CurrentPage, users.PageSize, users.TotalCount, users.TotalPages);
+
+            return Ok(users);
         }
 
         // api/users/id/3

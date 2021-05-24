@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using API.DTOs;
 using API.Entities;
+using API.Helpers;
 using API.Interfaces;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
@@ -37,20 +39,32 @@ namespace API.Data
                 .SingleOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<MemberDto>> GetMembersAsync()
+        public async Task<PagedList<MemberDto>> GetMembersAsync(PagingParams pagingParams)
         {
-            return await _context.Users
-                .ProjectTo<MemberDto>(_mapper.ConfigurationProvider)
-                .ToListAsync();
-        }
+            var query = _context.Users.AsQueryable();
+            
+            // Filter by Gender
+            query = query.Where(x => x.UserName != pagingParams.CurrentUsername);
+            query = query.Where(x => x.Gender == pagingParams.GenderToFilter);
 
-        public async Task<AppUser> GetUserByIdAsync(int id)
-        {
-            var user = await _context.Users.FindAsync(id);
-            if (user != null) await _context.Entry(user).Collection(i => i.Photos).LoadAsync();
-            return user;
-        }
+            // Filter by Age
+            var minDOB = DateTime.Today.AddYears(-pagingParams.MaxAge - 1);
+            var maxDOB = DateTime.Today.AddYears(-pagingParams.MinAge);
 
+            query = query.Where(x => x.DateOfBirth >= minDOB && x.DateOfBirth <= maxDOB);
+            
+            query = pagingParams.OrderBy switch
+            {
+                "created" => query.OrderByDescending(x => x.Created),
+                _ => query.OrderByDescending(x => x.LastActive) // _ means default case
+            };
+
+            return await PagedList<MemberDto>.CreateAsync(
+                query.ProjectTo<MemberDto>(_mapper.ConfigurationProvider).AsNoTracking(), 
+                pagingParams.PageNumber, 
+                pagingParams.PageSize);
+        }
+        
         public async Task<AppUser> GetUserByUserNameAsync(string username)
         {
             return await _context.Users
@@ -63,6 +77,20 @@ namespace API.Data
             return await _context.Users
                 .Include(p => p.Photos)
                 .ToListAsync();
+        }
+
+        public async Task<AppUser> GetUserWithoutPhotosByIdAsync(int id)
+        {
+            return await _context.Users.FindAsync(id);
+        }
+
+        public async Task<AppUser> GetUserWithPhotosByIdAsync(int id)
+        {
+            var user = await _context.Users.FindAsync(id);
+
+            if (user != null) await _context.Entry(user).Collection(i => i.Photos).LoadAsync();
+            
+            return user;
         }
 
         public async Task<bool> SaveAllAsync()
