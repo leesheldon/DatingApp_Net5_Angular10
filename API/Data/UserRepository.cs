@@ -39,7 +39,7 @@ namespace API.Data
                 .SingleOrDefaultAsync();
         }
 
-        public async Task<PagedList<MemberDto>> GetMembersAsync(PagingParams pagingParams)
+        public async Task<PagedList<MemberDto>> GetMembersAsync(UserPagingParams pagingParams)
         {
             var query = _context.Users.AsQueryable();
             

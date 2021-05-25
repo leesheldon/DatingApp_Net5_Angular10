@@ -30,7 +30,7 @@ namespace API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<MemberDto>>> GetUsers([FromQuery]PagingParams pagingParams)
+        public async Task<ActionResult<IEnumerable<MemberDto>>> GetUsers([FromQuery]UserPagingParams pagingParams)
         {
             var loggedInUser = await _userRepository.GetUserByUserNameAsync(User.GetUserName());
 
