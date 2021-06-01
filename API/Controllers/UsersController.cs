@@ -56,7 +56,9 @@ namespace API.Controllers
 
             // return userToReturn;
 
-            return await _unitOfWork.UserRepository.GetMemberByIdAsync(id);
+            var currentUserId = User.GetUserId();
+            return await _unitOfWork.UserRepository.GetMemberByIdAsync(id, 
+                isCurrentUser: currentUserId == id);
         }
 
         // api/users/name        
@@ -69,7 +71,9 @@ namespace API.Controllers
 
             // return userToReturn;
 
-            return await _unitOfWork.UserRepository.GetMemberByUserNameAsync(username);
+            var currentUsername = User.GetUserName();
+            return await _unitOfWork.UserRepository.GetMemberByUserNameAsync(username, 
+                isCurrentUser: currentUsername == username);
         }
 
         [HttpPut]
@@ -100,12 +104,7 @@ namespace API.Controllers
                 Url = result.SecureUrl.AbsoluteUri,
                 PublicId = result.PublicId
             };
-
-            if (user.Photos.Count <= 0)
-            {
-                newPhoto.IsMain = true;
-            }
-
+            
             user.Photos.Add(newPhoto);
 
             if (await _unitOfWork.Complete())
